@@ -45,38 +45,8 @@ include("create_vac_callbacks.jl");
 fitfiles = readdir("modelfits", join=true)
 model_vect = [@suppress_err load(filename)["model"] for filename in fitfiles]
 
-##Test model
 
-model = model_vect[30]
-perc_over_18 = sum(N_kenya[5:end, model.areaname]) / sum(N_kenya[5:end, :])
-KenyaCoVaccines.change_prob_immune_escape_with_waning!(model, perc_over_18; startdate=Date(2020, 12, 1), enddate=Date(2021, 12, 1))
-VE_acq_base = model.VE_acquisition
-VE_inf_base = model.VE_infectiousness
-VE_sev_base = model.VE_severe_disease_risk
-
-##
-
-θs = model |> flatten_chain
-# function immune_escape!(integrator)
-#     println(size(integrator.u))
-#     R = @view integrator.u[:, 7, :]
-#     #Reduce generation time by 30%
-#     gen_time_scale = 0.7
-#     integrator.p[1] = 1 * (1 / gen_time_scale) * integrator.p[1]# β₀
-#     integrator.p[6] = (1 / gen_time_scale) * integrator.p[6] # α
-#     integrator.p[8:10] = (1 / gen_time_scale) * integrator.p[8:10]# αP, γA, γM
-
-#     #Reduce vaccine protection against acquiring and transmitting infection by 50%
-#     integrator.p[19:24] = 0.5 * integrator.p[19:24] #ve_ac1, ve_ac2, ve_ac3, ve_inf1, ve_inf2, ve_inf3
-#     #Reduce protection from reinfection by 50%
-#     reinf_red = 0.5
-#     integrator.p[28] = (1.0 * reinf_red + 0.16 * (1 - reinf_red)) / 0.16
-#     #50% of R -> W at emergence of immune escape variant but set loss of complete immunity to 0
-#     integrator.u[:, 7, :] .-= 0.5 .* R
-#     integrator.u[:, 8, :] .+= 0.5 .* R
-#     integrator.p[11] = 0.0 # ω
-
-# end
+## Make variant arrival callback
 
 fs = falses(6, 11, 5)
 fs[:, 6, :] .= true
@@ -106,8 +76,6 @@ function immune_escape_CVODE!(integrator)
     integrator.u[idxs_W2_cvode] .+= 0.5 .* integrator.u[idxs_W1_cvode]
     integrator.u[idxs_R_cvode] .-= 0.5 .* integrator.u[idxs_R_cvode]
     integrator.u[idxs_W1_cvode] .-= 0.5 .* integrator.u[idxs_W1_cvode]
-
-    # integrator.p[11] = 0.0 # ω
 
 end
 
